@@ -1,0 +1,61 @@
+<!-- templates/reports.html - User Scam Report Page -->
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="bg-white p-6 shadow rounded-lg max-w-2xl mx-auto">
+    <h2 class="text-2xl font-bold text-gray-800">🚨 Report a Scam Ad</h2>
+    <p class="text-gray-600">Help us detect scam ads by submitting relevant details below.</p>
+    
+    <form id="report-form" class="mt-4" enctype="multipart/form-data">
+        <label class="block text-gray-700 font-bold">Ad URL</label>
+        <input type="url" name="ad_url" required class="w-full p-2 border rounded mt-1">
+        
+        <label class="block text-gray-700 font-bold mt-3">Description</label>
+        <textarea name="description" required class="w-full p-2 border rounded mt-1" rows="4"></textarea>
+        
+        <label class="block text-gray-700 font-bold mt-3">Upload Proof (Images)</label>
+        <input type="file" name="proof_images" accept="image/*" multiple class="w-full p-2 border rounded mt-1">
+        
+        <button type="submit" class="mt-4 bg-black text-white px-4 py-2 rounded-md">Submit Report</button>
+    </form>
+</div>
+
+<!-- Admin Review Section -->
+<div class="bg-gray-100 p-6 shadow rounded-lg mt-6 max-w-4xl mx-auto">
+    <h2 class="text-2xl font-bold text-gray-800">📌 Admin Review</h2>
+    <table class="w-full mt-4 border-collapse border border-gray-300">
+        <thead>
+            <tr class="bg-gray-200">
+                <th class="border p-2">Ad URL</th>
+                <th class="border p-2">Description</th>
+                <th class="border p-2">Status</th>
+                <th class="border p-2">Action</th>
+            </tr>
+        </thead>
+        <tbody id="review-table">
+            <!-- Reports will be dynamically inserted here -->
+        </tbody>
+    </table>
+</div>
+
+<script>
+    document.getElementById("report-form").addEventListener("submit", function(event) {
+        event.preventDefault();
+        alert("Scam report submitted successfully!"); // Placeholder for backend integration
+    });
+
+    fetch("/api/get_reports").then(response => response.json()).then(data => {
+        let reviewTable = document.getElementById("review-table");
+        data.reports.forEach(report => {
+            let row = `<tr class='border'>
+                <td class='border p-2'>${report.ad_url}</td>
+                <td class='border p-2'>${report.description}</td>
+                <td class='border p-2'>${report.status}</td>
+                <td class='border p-2'><button class='bg-green-500 text-white px-3 py-1 rounded'>Approve</button>
+                <button class='bg-red-500 text-white px-3 py-1 rounded ml-2'>Reject</button></td>
+            </tr>`;
+            reviewTable.innerHTML += row;
+        });
+    });
+</script>
+{% endblock %}

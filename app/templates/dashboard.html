@@ -1,0 +1,130 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">    
+    <!-- Scam Statistics Graph (Left Side) -->
+    <div class="bg-white p-6 shadow rounded-lg">
+        <h2 class="text-xl font-bold text-gray-800">📊 Scam Statistics</h2>
+        <canvas id="scamChart" class="mt-4"></canvas>
+    </div>
+    
+    <!-- Live Alerts Section (Right Side) -->
+    <div class="bg-red-100 p-6 shadow rounded-lg">
+        <h2 class="text-xl font-bold text-red-800">⚠️ Live Scam Alerts</h2>
+        <ul id="live-alerts" class="mt-2 text-gray-700"></ul>
+    </div>
+</div>
+
+<!-- Scam Reports Section -->
+<div class="bg-white p-6 shadow rounded-lg mt-6">
+    <h2 class="text-xl font-bold text-gray-800">📑 Scam Reports</h2>
+    
+    <!-- Search Bar -->
+    <input type="text" id="search-bar" placeholder="Search reports..." class="w-full p-2 border rounded mt-2">
+    
+    <table class="w-full mt-4 border-collapse border border-gray-300">
+        <thead>
+            <tr class="bg-gray-200">
+                <th class="border p-2">Ad ID</th>
+                <th class="border p-2">Text</th>
+                <th class="border p-2">Scam Status</th>
+                <th class="border p-2">Confidence</th>
+            </tr>
+        </thead>
+        <tbody id="report-table"></tbody>
+    </table>
+    
+    <!-- Pagination Controls -->
+    <div class="flex justify-between items-center mt-4">
+        <button id="prev-page" class="bg-gray-800 text-white px-3 py-1 rounded">Previous</button>
+        <span id="page-info" class="text-gray-700"></span>
+        <button id="next-page" class="bg-gray-800 text-white px-3 py-1 rounded">Next</button>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    let currentPage = 1;
+    const perPage = 10;
+    let scamChartInstance = null;
+
+    function fetchReports(page = 1, search = "") {
+        fetch(`/api/get_reports?page=${page}&per_page=${perPage}&search=${search}`)
+            .then(response => response.json())
+            .then(data => {
+                console.log("✅ API Response:", data);
+
+                let reportTable = document.getElementById("report-table");
+                reportTable.innerHTML = "";
+
+                let scamCount = 0, safeCount = 0;
+                let scamScores = [];
+                data.reports.forEach(report => {
+                    console.log("📜 Report Object:", report);
+                    if (report.is_scam) {
+                        scamCount++;
+                        scamScores.push(report.confidence * 100);
+                    } else {
+                        safeCount++;
+                    }
+
+                    let truncatedText = report.text.length > 50 ? report.text.substring(0, 50) + "..." : report.text;
+                    let row = `<tr class='border'>
+                        <td class='border p-2'>${report.ad_id || "N/A"}</td>
+                        <td class='border p-2' title='Click to expand' onclick='alert("${report.text}")'>${truncatedText}</td>
+                        <td class='border p-2'>${report.is_scam ? "✅ Scam" : "❌ Safe"}</td>
+                        <td class='border p-2'>${(report.confidence * 100).toFixed(2)}%</td>
+                    </tr>`;
+                    reportTable.innerHTML += row;
+                });
+                
+                document.getElementById("page-info").textContent = `Page ${data.page} of ${Math.ceil(data.total / perPage)}`;
+                currentPage = data.page;
+                updateScamChart(scamCount, safeCount, scamScores);
+            })
+            .catch(error => console.error("❌ Error fetching reports:", error));
+    }
+
+    function updateScamChart(scamCount, safeCount, scamScores) {
+        const ctx = document.getElementById('scamChart').getContext('2d');
+        if (scamChartInstance) {
+            scamChartInstance.destroy();
+        }
+        scamChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: Array.from({length: scamScores.length}, (_, i) => `Scam ${i+1}`),
+                datasets: [{
+                    label: 'Scam Confidence Over Time',
+                    data: scamScores,
+                    borderColor: '#ff4d4d',
+                    backgroundColor: 'rgba(255, 77, 77, 0.3)',
+                    borderWidth: 2,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        suggestedMax: 100
+                    }
+                }
+            }
+        });
+    }
+
+    document.getElementById("prev-page").addEventListener("click", () => {
+        if (currentPage > 1) fetchReports(currentPage - 1, document.getElementById("search-bar").value);
+    });
+    document.getElementById("next-page").addEventListener("click", () => {
+        fetchReports(currentPage + 1, document.getElementById("search-bar").value);
+    });
+    document.getElementById("search-bar").addEventListener("input", (event) => {
+        fetchReports(1, event.target.value);
+    });
+
+    fetchReports();
+</script>
+{% endblock %}

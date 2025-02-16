@@ -1,0 +1,46 @@
+<!-- templates/layout.html - Enhanced Sidebar with Sliding Animation -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrueAD Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        function toggleSidebar() {
+            document.getElementById("sidebar").classList.toggle("-translate-x-full");
+        }
+    </script>
+</head>
+<body class="bg-gray-100 h-screen flex">
+    <!-- Sidebar -->
+    <aside id="sidebar" class="w-64 bg-black text-white h-full p-5 flex flex-col fixed top-0 left-0 transform -translate-x-full transition-transform duration-300 ease-in-out">
+        <h2 class="text-2xl font-bold">TrueAD</h2>
+        <nav class="mt-5 flex-1">
+            <a href="/dashboard" class="block p-3 rounded hover:bg-gray-800">📊 Dashboard</a>
+            <a href="/reports" class="block p-3 rounded hover:bg-gray-800">📑 Reports</a>
+            <a href="/settings" class="block p-3 rounded hover:bg-gray-800">⚙️ Settings</a>
+        </nav>
+        <div class="border-t border-gray-700 pt-4">
+            <a href="/logout" class="block p-3 rounded bg-red-500 hover:bg-red-700 text-white font-bold text-center">🚪 Logout</a>
+        </div>
+    </aside>
+    
+    <!-- Toggle Button -->
+    <button onclick="toggleSidebar()" class="absolute top-5 left-5 bg-black text-white p-2 rounded-md">☰</button>
+
+    <!-- Main Content -->
+    <main class="flex-1 p-6 bg-gray-50 ml-16">
+        <header class="flex justify-between items-center bg-white p-4 shadow-md rounded-md">
+            <h1 class="text-xl font-semibold text-black">TrueAD</h1>
+            <div class="flex items-center gap-4">
+                <span class="text-gray-700">Welcome, User</span>
+                <img src="/static/user-icon.png" alt="Profile" class="w-10 h-10 rounded-full border-2 border-black">
+            </div>
+        </header>
+        <section class="mt-6">
+            {% block content %}{% endblock %}
+        </section>
+    </main>
+</body>
+</html>
