@@ -72,7 +72,7 @@
                     let row = `<tr class='border'>
                         <td class='border p-2'>${report.ad_id || "N/A"}</td>
                         <td class='border p-2' title='Click to expand' onclick='alert("${report.text}")'>${truncatedText}</td>
-                        <td class='border p-2'>${report.is_scam ? "✅ Scam" : "❌ Safe"}</td>
+                        <td class='border p-2'>${report.is_scam ? "❌ Scam" : "✅ Safe"}</td>
                         <td class='border p-2'>${(report.confidence * 100).toFixed(2)}%</td>
                     </tr>`;
                     reportTable.innerHTML += row;

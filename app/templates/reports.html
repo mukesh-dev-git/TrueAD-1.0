@@ -39,23 +39,62 @@
 </div>
 
 <script>
-    document.getElementById("report-form").addEventListener("submit", function(event) {
+    document.getElementById("report-form").addEventListener("submit", async function(event) {
         event.preventDefault();
-        alert("Scam report submitted successfully!"); // Placeholder for backend integration
+        
+        let formData = new FormData(this);
+        let response = await fetch("/api/submit_report", {
+            method: "POST",
+            body: formData
+        });
+        let result = await response.json();
+        alert(result.message);
+        fetchReports();
     });
 
-    fetch("/api/get_reports").then(response => response.json()).then(data => {
-        let reviewTable = document.getElementById("review-table");
-        data.reports.forEach(report => {
-            let row = `<tr class='border'>
-                <td class='border p-2'>${report.ad_url}</td>
-                <td class='border p-2'>${report.description}</td>
-                <td class='border p-2'>${report.status}</td>
-                <td class='border p-2'><button class='bg-green-500 text-white px-3 py-1 rounded'>Approve</button>
-                <button class='bg-red-500 text-white px-3 py-1 rounded ml-2'>Reject</button></td>
-            </tr>`;
-            reviewTable.innerHTML += row;
-        });
+    function fetchReports() {
+        fetch("/api/get_reported_ads")
+            .then(response => response.json())
+            .then(data => {
+                let reviewTable = document.getElementById("review-table");
+                reviewTable.innerHTML = "";
+                
+                data.reports.forEach(report => {
+                    let row = `<tr class='border'>
+                        <td class='border p-2'>${report.ad_url || "N/A"}</td>
+                        <td class='border p-2'>${report.description || "No description"}</td>
+                        <td class='border p-2'>${report.status}</td>
+                        <td class='border p-2'>
+                            <button class='approve-btn bg-green-500 text-white px-3 py-1 rounded' data-id='${report.report_id}'>Approve</button>
+                            <button class='reject-btn bg-red-500 text-white px-3 py-1 rounded ml-2' data-id='${report.report_id}'>Reject</button>
+                        </td>
+                    </tr>`;
+                    reviewTable.innerHTML += row;
+                });
+            });
+    }
+
+    document.addEventListener("click", async function(event) {
+        if (event.target.classList.contains("approve-btn")) {
+            let reportId = event.target.getAttribute("data-id");
+            await fetch("/api/approve_report", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ report_id: reportId })
+            });
+            fetchReports();
+        }
+        if (event.target.classList.contains("reject-btn")) {
+            let reportId = event.target.getAttribute("data-id");
+            await fetch("/api/reject_report", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ report_id: reportId })
+            });
+            fetchReports();
+        }
     });
+
+    fetchReports();
 </script>
 {% endblock %}
