@@ -9,6 +9,7 @@ from app.routes.ml_model import predict_scam
 from app.extensions import socketio 
 from pymongo import MongoClient
 from config import Config
+from datetime import datetime
 
 # Initialize database connection
 db = init_db()
@@ -52,34 +53,47 @@ def submit_report():
     
     url_scam = check_url_safety(ad_url) if ad_url else False
     scam_prediction = predict_scam(description) if description else {"is_scam": False, "confidence": 0}
-
+    
     report_data = {
         "report_id": str(uuid.uuid4()),
         "ad_url": ad_url,
         "description": description,
         "is_scam": url_scam or scam_prediction["is_scam"],
         "confidence": max(scam_prediction["confidence"], 1.0 if url_scam else 0.0),
-        "status": "Pending"
+        "submitted_at": datetime.utcnow().isoformat()
     }
     db["reports"].insert_one(report_data)
     return jsonify({"message": "Report submitted successfully", "report": report_data})
 
 @api_blueprint.route("/get_reported_ads", methods=["GET"])
 def get_reported_ads():
-    reports = list(db["reports"].find({}, {"_id": 0}))
-    return jsonify({"reports": reports})
+    page = int(request.args.get("page", 1))
+    per_page = int(request.args.get("per_page", 10))
+    search_query = request.args.get("search", "")
+    
+    query = {}
+    if search_query:
+        query["description"] = {"$regex": search_query, "$options": "i"}
+    
+    total_reports = db["reports"].count_documents(query)
+    reports = list(db["reports"].find(query, {"_id": 0}).skip((page - 1) * per_page).limit(per_page))
+    
+    return jsonify({"reports": reports, "total": total_reports, "page": page, "per_page": per_page})
 
-@api_blueprint.route("/approve_report", methods=["POST"])
-def approve_report():
-    report_id = request.json.get("report_id")
-    db["reports"].update_one({"report_id": report_id}, {"$set": {"status": "Approved"}})
-    return jsonify({"message": "Report approved"})
-
-@api_blueprint.route("/reject_report", methods=["POST"])
-def reject_report():
-    report_id = request.json.get("report_id")
-    db["reports"].update_one({"report_id": report_id}, {"$set": {"status": "Rejected"}})
-    return jsonify({"message": "Report rejected"})
+@api_blueprint.route("/get_overall_statistics", methods=["GET"])
+def get_overall_statistics():
+    scam_reports = list(db["ads"].find({}, {"_id": 0, "is_scam": 1, "confidence": 1}))
+    total_scam = sum(1 for report in scam_reports if report["is_scam"])
+    total_safe = len(scam_reports) - total_scam
+    avg_scam_confidence = sum(report["confidence"] for report in scam_reports if report["is_scam"]) / total_scam if total_scam else 0
+    avg_safe_confidence = sum(report["confidence"] for report in scam_reports if not report["is_scam"]) / total_safe if total_safe else 0
+    
+    return jsonify({
+        "total_scam": total_scam,
+        "total_safe": total_safe,
+        "avg_scam_confidence": avg_scam_confidence * 100,
+        "avg_safe_confidence": avg_safe_confidence * 100
+    })
 
 @api_blueprint.route("/detect_scam", methods=["POST"])
 def detect_scam():
@@ -102,7 +116,7 @@ def get_reports():
     per_page = int(request.args.get("per_page", 10))
     query = {}
     total_reports = db["ads"].count_documents(query)
-    reports = list(db["ads"].find(query, {"_id": 0}))
+    reports = list(db["ads"].find(query, {"_id": 0}).skip((page - 1) * per_page).limit(per_page))
     return jsonify({"reports": reports, "total": total_reports, "page": page, "per_page": per_page})
 
 @api_blueprint.route("/process_reddit_ads", methods=["POST"])

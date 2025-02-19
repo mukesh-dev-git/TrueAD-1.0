@@ -23,13 +23,16 @@
 <!-- Admin Review Section -->
 <div class="bg-gray-100 p-6 shadow rounded-lg mt-6 max-w-4xl mx-auto">
     <h2 class="text-2xl font-bold text-gray-800">📌 Admin Review</h2>
+    
+    <!-- Search Bar -->
+    <input type="text" id="search-bar" placeholder="Search reports..." class="w-full p-2 border rounded mt-2">
+    
     <table class="w-full mt-4 border-collapse border border-gray-300">
         <thead>
             <tr class="bg-gray-200">
                 <th class="border p-2">Ad URL</th>
                 <th class="border p-2">Description</th>
-                <th class="border p-2">Status</th>
-                <th class="border p-2">Action</th>
+                <th class="border p-2">Scam Status</th>
             </tr>
         </thead>
         <tbody id="review-table">
@@ -52,8 +55,8 @@
         fetchReports();
     });
 
-    function fetchReports() {
-        fetch("/api/get_reported_ads")
+    function fetchReports(search = "") {
+        fetch(`/api/get_reported_ads?search=${search}`)
             .then(response => response.json())
             .then(data => {
                 let reviewTable = document.getElementById("review-table");
@@ -63,36 +66,15 @@
                     let row = `<tr class='border'>
                         <td class='border p-2'>${report.ad_url || "N/A"}</td>
                         <td class='border p-2'>${report.description || "No description"}</td>
-                        <td class='border p-2'>${report.status}</td>
-                        <td class='border p-2'>
-                            <button class='approve-btn bg-green-500 text-white px-3 py-1 rounded' data-id='${report.report_id}'>Approve</button>
-                            <button class='reject-btn bg-red-500 text-white px-3 py-1 rounded ml-2' data-id='${report.report_id}'>Reject</button>
-                        </td>
+                        <td class='border p-2'>${report.is_scam ? "✅ Scam" : "❌ Safe"}</td>
                     </tr>`;
                     reviewTable.innerHTML += row;
                 });
             });
     }
 
-    document.addEventListener("click", async function(event) {
-        if (event.target.classList.contains("approve-btn")) {
-            let reportId = event.target.getAttribute("data-id");
-            await fetch("/api/approve_report", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ report_id: reportId })
-            });
-            fetchReports();
-        }
-        if (event.target.classList.contains("reject-btn")) {
-            let reportId = event.target.getAttribute("data-id");
-            await fetch("/api/reject_report", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ report_id: reportId })
-            });
-            fetchReports();
-        }
+    document.getElementById("search-bar").addEventListener("input", (event) => {
+        fetchReports(event.target.value);
     });
 
     fetchReports();

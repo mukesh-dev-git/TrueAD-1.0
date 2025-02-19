@@ -23,82 +23,59 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // Pagination and Search for Reports
-    let currentPage = 1;
-    const perPage = 10;
-    let scamChartInstance = null; // To store the chart instance
+    let scamChartInstance = null;
     
-    function fetchReports(page = 1, search = "") {
-        fetch(`/api/get_reports?page=${page}&per_page=${perPage}&search=${search}`)
+    function fetchOverallStatistics() {
+        fetch("/api/get_overall_statistics")
             .then(response => response.json())
             .then(data => {
-                console.log("✅ API Response:", data);
-    
-                let reportTable = document.getElementById("report-table");
-                reportTable.innerHTML = "";
-    
-                let scamCount = 0, safeCount = 0;
-                data.reports.forEach(report => {
-                    console.log("📜 Report Object:", report);
-                    if (report.is_scam) scamCount++; else safeCount++;
-    
-                    let row = `<tr class='border'>
-                        <td class='border p-2'>${report.ad_id || "N/A"}</td>
-                        <td class='border p-2'>${report.text || "No description available"}</td>
-                        <td class='border p-2'>${report.is_scam ? "✅ Scam" : "❌ Safe"}</td>
-                        <td class='border p-2'>${(report.confidence * 100).toFixed(2)}%</td>
-                    </tr>`;
-                    reportTable.innerHTML += row;
-                });
-    
-                document.getElementById("page-info").textContent = `Page ${data.page} of ${Math.ceil(data.total / perPage)}`;
-                currentPage = data.page;
-                updateScamChart(scamCount, safeCount);
+                console.log("✅ Overall Statistics Response:", data);
+                updateScamChart(data);
             })
-            .catch(error => console.error("❌ Error fetching reports:", error));
+            .catch(error => console.error("❌ Error fetching overall statistics:", error));
     }
     
-    function updateScamChart(scamCount, safeCount) {
+    function updateScamChart(data) {
         const ctx = document.getElementById('scamChart').getContext('2d');
         
-        // Destroy previous chart instance if it exists
         if (scamChartInstance) {
             scamChartInstance.destroy();
         }
-    
+
         scamChartInstance = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: ['Scam', 'Safe'],
-                datasets: [{
-                    label: 'Number of Ads',
-                    data: [scamCount, safeCount],
-                    borderColor: ['#ff4d4d', '#4caf50'],
-                    backgroundColor: 'rgba(0, 0, 0, 0)',
-                    borderWidth: 2,
-                    fill: false
-                }]
+                datasets: [
+                    {
+                        label: 'Total Ads',
+                        data: [data.total_scam, data.total_safe],
+                        borderColor: '#ff4d4d',
+                        backgroundColor: 'rgba(255, 77, 77, 0.3)',
+                        borderWidth: 2,
+                        fill: false
+                    },
+                    {
+                        label: 'Confidence Level',
+                        data: [data.avg_scam_confidence, data.avg_safe_confidence],
+                        borderColor: '#4caf50',
+                        backgroundColor: 'rgba(76, 175, 80, 0.3)',
+                        borderWidth: 2,
+                        fill: false
+                    }
+                ]
             },
             options: {
                 responsive: true,
                 scales: {
                     y: {
-                        beginAtZero: true
+                        beginAtZero: true,
+                        suggestedMax: 100
                     }
                 }
             }
         });
     }
-    
-    document.getElementById("prev-page").addEventListener("click", () => {
-        if (currentPage > 1) fetchReports(currentPage - 1, document.getElementById("search-bar").value);
-    });
-    document.getElementById("next-page").addEventListener("click", () => {
-        fetchReports(currentPage + 1, document.getElementById("search-bar").value);
-    });
-    document.getElementById("search-bar").addEventListener("input", (event) => {
-        fetchReports(1, event.target.value);
-    });
 
-    fetchReports();
+    fetchOverallStatistics();
 });

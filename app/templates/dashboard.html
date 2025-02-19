@@ -5,7 +5,7 @@
     <!-- Scam Statistics Graph (Left Side) -->
     <div class="bg-white p-6 shadow rounded-lg">
         <h2 class="text-xl font-bold text-gray-800">📊 Scam Statistics</h2>
-        <canvas id="scamChart" class="mt-4"></canvas>
+        <canvas id="scamChart" class="mt-4" style="width: 200px; height: 100px;"></canvas>
     </div>
     
     <!-- Live Alerts Section (Right Side) -->
@@ -58,12 +58,10 @@
                 reportTable.innerHTML = "";
 
                 let scamCount = 0, safeCount = 0;
-                let scamScores = [];
                 data.reports.forEach(report => {
                     console.log("📜 Report Object:", report);
                     if (report.is_scam) {
                         scamCount++;
-                        scamScores.push(report.confidence * 100);
                     } else {
                         safeCount++;
                     }
@@ -80,37 +78,27 @@
                 
                 document.getElementById("page-info").textContent = `Page ${data.page} of ${Math.ceil(data.total / perPage)}`;
                 currentPage = data.page;
-                updateScamChart(scamCount, safeCount, scamScores);
+                updateScamChart(scamCount, safeCount);
             })
             .catch(error => console.error("❌ Error fetching reports:", error));
     }
 
-    function updateScamChart(scamCount, safeCount, scamScores) {
+    function updateScamChart(scamCount, safeCount) {
         const ctx = document.getElementById('scamChart').getContext('2d');
         if (scamChartInstance) {
             scamChartInstance.destroy();
         }
         scamChartInstance = new Chart(ctx, {
-            type: 'line',
+            type: 'pie',
             data: {
-                labels: Array.from({length: scamScores.length}, (_, i) => `Scam ${i+1}`),
+                labels: ['Scam', 'Safe'],
                 datasets: [{
-                    label: 'Scam Confidence Over Time',
-                    data: scamScores,
-                    borderColor: '#ff4d4d',
-                    backgroundColor: 'rgba(255, 77, 77, 0.3)',
-                    borderWidth: 2,
-                    fill: true
+                    data: [scamCount, safeCount],
+                    backgroundColor: ['#ff4d4d', '#4caf50']
                 }]
             },
             options: {
-                responsive: true,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        suggestedMax: 100
-                    }
-                }
+                responsive: true
             }
         });
     }
@@ -122,9 +110,8 @@
         fetchReports(currentPage + 1, document.getElementById("search-bar").value);
     });
     document.getElementById("search-bar").addEventListener("input", (event) => {
-        fetchReports(1, event.target.value);
+    fetchReports(1, event.target.value.trim());
     });
-
     fetchReports();
 </script>
 {% endblock %}
