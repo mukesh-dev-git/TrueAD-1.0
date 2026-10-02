@@ -1,0 +1,13 @@
+flask
+flask-cors
+flask-socketio
+pymongo
+requests
+beautifulsoup4
+praw
+easyocr
+joblib
+numpy
+pandas
+scikit-learn
+xgboost
